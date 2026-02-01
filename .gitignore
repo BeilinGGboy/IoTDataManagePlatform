@@ -1,0 +1,38 @@
+# Binaries
+smartwatch-server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+server.log
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
