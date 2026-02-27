@@ -12,8 +12,8 @@ smartwatch-server
 # Output of the go coverage tool
 *.out
 
-# Dependency directories
-vendor/
+# Dependency directories (vendor 已纳入项目，如需忽略可取消注释)
+# vendor/
 
 # Go workspace file
 go.work

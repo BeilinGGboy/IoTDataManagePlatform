@@ -38,6 +38,11 @@ smartwatch-server/
 go mod download
 ```
 
+如遇网络问题，可设置国内代理：
+```bash
+go env -w GOPROXY=https://goproxy.cn,direct
+```
+
 ### 2. 运行服务器
 
 ```bash
