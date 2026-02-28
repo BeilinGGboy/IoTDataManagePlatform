@@ -36,3 +36,6 @@ server.log
 # Database
 *.db
 *.sqlite
+
+# TLS certificates (自签名证书勿提交)
+*.pem

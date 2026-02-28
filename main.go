@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"smartwatch-server/api/handlers"
 
@@ -56,32 +57,65 @@ func main() {
 		})
 	})
 
-	// 根路径
+	// 前端静态资源
+	r.Static("/web", "./web")
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"name":    "Smartwatch Data Server",
-			"version": "1.0.0",
-			"endpoints": map[string]string{
-				"POST /api/v1/data/batch": "批量上传设备数据",
-				"GET  /api/v1/stats":      "获取统计信息",
-				"GET  /health":            "健康检查",
-			},
-		})
+		c.File("./web/index.html")
 	})
 
-	// 启动服务器
-	addr := ":" + port
+	// 启动服务器（0.0.0.0 确保手机等局域网设备可访问）
+	addr := "0.0.0.0:" + port
+	certFile := os.Getenv("TLS_CERT")
+	keyFile := os.Getenv("TLS_KEY")
+	scheme := "http"
+	if certFile != "" && keyFile != "" {
+		scheme = "https"
+	}
+
 	fmt.Printf("========================================\n")
 	fmt.Printf("   智能手表数据服务器\n")
 	fmt.Printf("========================================\n")
-	fmt.Printf("服务器启动在: http://localhost%s\n", addr)
+	if hostname, _ := os.Hostname(); hostname != "" {
+		fmt.Printf("域名访问: %s://%s.local:%s\n", scheme, hostname, port)
+	}
+	fmt.Printf("本机访问: %s://localhost:%s\n", scheme, port)
+	if ip := getLocalIP(); ip != "" {
+		fmt.Printf("局域网访问: %s://%s:%s\n", scheme, ip, port)
+	}
+	fmt.Printf("管理平台: 手机/电脑浏览器打开上述地址\n")
+	if certFile == "" {
+		fmt.Printf("提示: 设置 TLS_CERT+TLS_KEY 可启用 HTTPS\n")
+	}
 	fmt.Printf("接口:\n")
 	fmt.Printf("  POST /api/v1/data/batch - 批量上传数据\n")
 	fmt.Printf("  GET  /api/v1/stats      - 统计信息\n")
 	fmt.Printf("  GET  /health            - 健康检查\n")
 	fmt.Printf("========================================\n\n")
 
-	if err := r.Run(addr); err != nil {
-		log.Fatal("服务器启动失败:", err)
+	if certFile != "" && keyFile != "" {
+		log.Printf("HTTPS 已启用，使用证书: %s", certFile)
+		if err := r.RunTLS(addr, certFile, keyFile); err != nil {
+			log.Fatal("服务器启动失败:", err)
+		}
+	} else {
+		if err := r.Run(addr); err != nil {
+			log.Fatal("服务器启动失败:", err)
+		}
 	}
+}
+
+// getLocalIP 获取本机局域网 IP
+func getLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
 }

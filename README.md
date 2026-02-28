@@ -16,6 +16,14 @@ smartwatch-server/
 │   └── models/            # 数据模型
 │       └── device_data.go
 │
+├── web/                    # 前端管理平台（可扩展）
+│   ├── index.html         # 入口页
+│   ├── css/style.css      # 样式
+│   └── js/
+│       ├── api.js         # API 调用
+│       ├── router.js      # 路由（Hash 路由，支持多页）
+│       └── app.js         # 页面渲染逻辑
+│
 ├── config/                # 配置管理（待实现）
 └── README.md             # 项目说明
 ```
@@ -26,6 +34,7 @@ smartwatch-server/
 - ✅ 数据统计和监控
 - ✅ 健康检查接口
 - ✅ CORS 支持
+- ✅ Web 管理平台（仪表盘、统计、多页可扩展）
 - ⏳ 数据库存储（待实现）
 - ⏳ 数据分析和查询（待实现）
 - ⏳ 用户认证（待实现）
@@ -49,13 +58,45 @@ go env -w GOPROXY=https://goproxy.cn,direct
 go run main.go
 ```
 
-服务器将在 `http://localhost:8080` 启动。
+服务器将在 `http://localhost:8080` 启动。**同一局域网内的其他设备**可通过 `http://<服务器IP>:8080` 访问管理平台。
 
 ### 3. 使用环境变量配置端口
 
 ```bash
 PORT=3000 go run main.go
 ```
+
+### 4. 手机/其他设备无法访问？
+
+常见原因与排查：
+
+| 问题 | 解决方案 |
+|------|----------|
+| **防火墙** | macOS：系统设置 → 网络 → 防火墙 → 允许 8080 端口；或临时关闭防火墙测试 |
+| **不在同一网络** | 手机需连接与电脑相同的 WiFi（不能用流量） |
+| **路由器隔离** | 部分路由器开启「AP 隔离」，会阻止设备互访，需在路由器设置中关闭 |
+
+### 5. 域名访问（替代 IP）
+
+同一局域网内，可用 **主机名.local** 访问（mDNS/Bonjour）：
+
+- macOS：`http://你的电脑名.local:8080`（如 `http://MacBook-Pro.local:8080`）
+- 需确保手机与电脑在同一 WiFi
+
+### 6. 启用 HTTPS
+
+默认使用 HTTP。如需 HTTPS（如部分功能要求安全上下文）：
+
+```bash
+# 生成自签名证书
+chmod +x scripts/gen-cert.sh
+./scripts/gen-cert.sh
+
+# 使用证书启动
+TLS_CERT=cert.pem TLS_KEY=key.pem go run main.go
+```
+
+自签名证书会导致浏览器提示「不安全」，需手动点击「高级」→「继续访问」。正式环境建议使用 Let's Encrypt 等可信证书。
 
 ## API 接口
 
