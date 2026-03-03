@@ -1,24 +1,37 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"smartwatch-server/api/handlers"
+	"smartwatch-server/api/repository"
+	"smartwatch-server/config"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// 获取端口（环境变量或默认8080）
+	// 加载 .env（可选）
+	_ = loadEnv()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// 创建数据处理器
-	dataHandler := handlers.NewDataHandler()
+	// 初始化数据库（可选，未配置时仅内存模式）
+	var dataHandler *handlers.DataHandler
+	if db, err := config.InitDB(); err != nil {
+		log.Printf("数据库未配置或连接失败，使用内存模式: %v", err)
+		dataHandler = handlers.NewDataHandler(nil)
+	} else {
+		log.Println("数据库连接成功")
+		dataHandler = handlers.NewDataHandler(repository.NewDataRepository(db))
+	}
 
 	// 创建 Gin 路由
 	r := gin.Default()
@@ -102,6 +115,30 @@ func main() {
 			log.Fatal("服务器启动失败:", err)
 		}
 	}
+}
+
+// loadEnv 加载 .env 文件（若存在）
+func loadEnv() error {
+	f, err := os.Open(".env")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if i := strings.Index(line, "="); i > 0 {
+			k, v := strings.TrimSpace(line[:i]), strings.TrimSpace(line[i+1:])
+			v = strings.Trim(v, `"'`)
+			if k != "" {
+				os.Setenv(k, v)
+			}
+		}
+	}
+	return sc.Err()
 }
 
 // getLocalIP 获取本机局域网 IP

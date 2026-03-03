@@ -5,23 +5,25 @@ import (
 	"log"
 	"net/http"
 	"smartwatch-server/api/models"
+	"smartwatch-server/api/repository"
 	"sync"
 	"time"
 )
 
 // DataHandler 数据处理器
 type DataHandler struct {
-	// 统计信息
 	totalReceived int64
 	totalBatches  int64
 	startTime     time.Time
 	mutex         sync.RWMutex
+	repo          *repository.DataRepository // 可选，为 nil 时仅内存统计
 }
 
 // NewDataHandler 创建数据处理器
-func NewDataHandler() *DataHandler {
+func NewDataHandler(repo *repository.DataRepository) *DataHandler {
 	return &DataHandler{
 		startTime: time.Now(),
+		repo:      repo,
 	}
 }
 
@@ -41,7 +43,16 @@ func (h *DataHandler) HandleBatchUpload(w http.ResponseWriter, r *http.Request) 
 	}
 	defer r.Body.Close()
 
-	// 更新统计
+	// 保存到数据库（如果已配置）
+	if h.repo != nil {
+		if err := h.repo.SaveBatch(data); err != nil {
+			log.Printf("保存到数据库失败: %v", err)
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// 更新内存统计
 	h.mutex.Lock()
 	h.totalReceived += int64(len(data))
 	h.totalBatches++
@@ -49,8 +60,6 @@ func (h *DataHandler) HandleBatchUpload(w http.ResponseWriter, r *http.Request) 
 	receivedCount := h.totalReceived
 	h.mutex.Unlock()
 
-	// TODO: 这里应该保存到数据库
-	// 目前只是记录日志
 	log.Printf("收到批次 #%d，包含 %d 条数据，累计接收 %d 条", batchCount, len(data), receivedCount)
 
 	// 返回成功响应
@@ -71,6 +80,13 @@ func (h *DataHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	totalReceived := h.totalReceived
 	totalBatches := h.totalBatches
 	h.mutex.RUnlock()
+
+	// 若使用数据库，可从 DB 获取更准确的总数
+	if h.repo != nil {
+		if dbTotal, err := h.repo.GetTotalReceived(); err == nil {
+			totalReceived = dbTotal
+		}
+	}
 
 	avgRate := float64(totalReceived) / duration.Seconds()
 	if duration.Seconds() == 0 {

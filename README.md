@@ -24,7 +24,8 @@ smartwatch-server/
 │       ├── router.js      # 路由（Hash 路由，支持多页）
 │       └── app.js         # 页面渲染逻辑
 │
-├── config/                # 配置管理（待实现）
+├── config/                # 配置管理
+│   └── database.go       # 数据库连接
 └── README.md             # 项目说明
 ```
 
@@ -35,7 +36,7 @@ smartwatch-server/
 - ✅ 健康检查接口
 - ✅ CORS 支持
 - ✅ Web 管理平台（仪表盘、统计、多页可扩展）
-- ⏳ 数据库存储（待实现）
+- ✅ 数据库存储（MySQL）
 - ⏳ 数据分析和查询（待实现）
 - ⏳ 用户认证（待实现）
 
@@ -97,6 +98,19 @@ TLS_CERT=cert.pem TLS_KEY=key.pem go run main.go
 ```
 
 自签名证书会导致浏览器提示「不安全」，需手动点击「高级」→「继续访问」。正式环境建议使用 Let's Encrypt 等可信证书。
+
+### 7. 数据库配置（MySQL）
+
+1. 安装 MySQL：`brew install mysql`，启动：`brew services start mysql`
+2. 创建数据库：`mysql -u root -p < scripts/init_db.sql`
+3. 配置连接：复制 `.env.example` 为 `.env`，填写 `DB_PASSWORD` 等
+4. 详见 **[docs/MySQL安装与配置.md](docs/MySQL安装与配置.md)** 和 **[docs/数据库设计说明.md](docs/数据库设计说明.md)**
+
+未配置数据库时，服务以内存模式运行（数据不持久化）。
+
+### 8. 公网域名访问
+
+从互联网通过域名访问，详见 **[docs/公网域名访问指南.md](docs/公网域名访问指南.md)**。
 
 ## API 接口
 
@@ -250,13 +264,13 @@ server {
 ## 开发计划
 
 ### 第一阶段（当前）
-- [x] 基础 API 接口
-- [x] 数据接收和统计
+- [☑️] 基础 API 接口
+- [☑️] 数据接收和统计
 - [x] 健康检查
 
 ### 第二阶段
-- [ ] 数据库集成（PostgreSQL/MySQL）
-- [ ] 数据持久化存储
+- [x] 数据库集成（MySQL）
+- [x] 数据持久化存储
 - [ ] 数据查询接口
 - [ ] 用户认证（JWT）
 
