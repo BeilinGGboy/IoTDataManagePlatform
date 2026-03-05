@@ -16,7 +16,12 @@ import (
 
 func main() {
 	// 加载 .env（可选）
-	_ = loadEnv()
+	if err := loadEnv(); err != nil {
+		cwd, _ := os.Getwd()
+		log.Printf("未加载 .env（工作目录: %s）: %v", cwd, err)
+	} else {
+		log.Println("已加载 .env")
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -25,11 +30,14 @@ func main() {
 
 	// 初始化数据库（可选，未配置时仅内存模式）
 	var dataHandler *handlers.DataHandler
+	dbCfg := config.LoadDBConfig()
 	if db, err := config.InitDB(); err != nil {
-		log.Printf("数据库未配置或连接失败，使用内存模式: %v", err)
+		log.Printf("❌ 数据库连接失败，使用内存模式（数据不持久化）")
+		log.Printf("   错误: %v", err)
+		log.Printf("   配置: host=%s port=%s user=%s db=%s (请检查 .env 中 DB_PASSWORD 等)", dbCfg.Host, dbCfg.Port, dbCfg.User, dbCfg.DBName)
 		dataHandler = handlers.NewDataHandler(nil)
 	} else {
-		log.Println("数据库连接成功")
+		log.Println("✅ 数据库连接成功")
 		dataHandler = handlers.NewDataHandler(repository.NewDataRepository(db))
 	}
 
@@ -119,7 +127,15 @@ func main() {
 
 // loadEnv 加载 .env 文件（若存在）
 func loadEnv() error {
-	f, err := os.Open(".env")
+	paths := []string{".env", "smartwatch-server/.env"}
+	var f *os.File
+	var err error
+	for _, p := range paths {
+		f, err = os.Open(p)
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return err
 	}

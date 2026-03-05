@@ -17,7 +17,7 @@ type DBConfig struct {
 	DBName   string
 }
 
-// LoadDBConfig 从环境变量加载配置
+// LoadDBConfig 从环境变量加载配置（需在 loadEnv 之后调用）
 func LoadDBConfig() DBConfig {
 	return DBConfig{
 		Host:     getEnv("DB_HOST", "localhost"),
@@ -30,16 +30,19 @@ func LoadDBConfig() DBConfig {
 
 // DSN 生成 MySQL DSN
 func (c DBConfig) DSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&allowPublicKeyRetrieval=true",
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		c.User, c.Password, c.Host, c.Port, c.DBName)
 }
 
 // InitDB 初始化数据库连接
 func InitDB() (*gorm.DB, error) {
 	cfg := LoadDBConfig()
+	if cfg.Password == "" {
+		return nil, fmt.Errorf("DB_PASSWORD 未设置，请在 .env 中配置或设置环境变量")
+	}
 	db, err := gorm.Open(mysql.Open(cfg.DSN()), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("连接数据库失败: %w", err)
+		return nil, fmt.Errorf("连接失败: %w", err)
 	}
 	return db, nil
 }

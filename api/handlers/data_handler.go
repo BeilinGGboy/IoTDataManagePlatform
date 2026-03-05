@@ -50,6 +50,9 @@ func (h *DataHandler) HandleBatchUpload(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("已保存 %d 条数据到数据库", len(data))
+	} else {
+		log.Printf("⚠️ 内存模式：数据未持久化到数据库")
 	}
 
 	// 更新内存统计

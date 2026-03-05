@@ -1,6 +1,11 @@
 package repository
 
-import "smartwatch-server/api/models"
+import (
+	"log"
+	"smartwatch-server/api/models"
+
+	"gorm.io/gorm"
+)
 
 // DataRepository 数据仓储
 type DataRepository struct {
@@ -28,6 +33,7 @@ func (r *DataRepository) saveOne(d *models.DeviceData) error {
 	r.db.Where("device_id = ?", d.DeviceID).FirstOrCreate(&dev, models.Device{DeviceID: d.DeviceID, UserID: d.UserID})
 
 	if d.HeartRate != nil {
+		log.Printf("[DB] 保存心率: device=%s bpm=%d", d.DeviceID, d.HeartRate.BPM)
 		rec := models.HeartRateRecord{
 			DeviceID:   d.DeviceID,
 			UserID:     d.UserID,
@@ -39,6 +45,7 @@ func (r *DataRepository) saveOne(d *models.DeviceData) error {
 		}
 	}
 	if d.Steps != nil {
+		log.Printf("[DB] 保存步数: device=%s steps=%d", d.DeviceID, d.Steps.Steps)
 		rec := models.StepsRecord{
 			DeviceID:   d.DeviceID,
 			UserID:     d.UserID,
@@ -52,6 +59,7 @@ func (r *DataRepository) saveOne(d *models.DeviceData) error {
 		}
 	}
 	if d.Sleep != nil {
+		log.Printf("[DB] 保存睡眠: device=%s duration=%dmin", d.DeviceID, d.Sleep.Duration)
 		rec := models.SleepRecord{
 			DeviceID:     d.DeviceID,
 			UserID:       d.UserID,
@@ -67,6 +75,7 @@ func (r *DataRepository) saveOne(d *models.DeviceData) error {
 		}
 	}
 	if d.Sport != nil {
+		log.Printf("[DB] 保存运动: device=%s type=%s", d.DeviceID, d.Sport.SportType)
 		rec := models.SportRecord{
 			DeviceID:     d.DeviceID,
 			UserID:       d.UserID,
