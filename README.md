@@ -112,6 +112,10 @@ TLS_CERT=cert.pem TLS_KEY=key.pem go run main.go
 
 从互联网通过域名访问，详见 **[docs/公网域名访问指南.md](docs/公网域名访问指南.md)**。
 
+### 9. 阿里云部署
+
+部署到阿里云 ECS 实现公网访问，详见 **[docs/阿里云部署指南.md](docs/阿里云部署指南.md)**。
+
 ## API 接口
 
 ### 1. 批量上传数据
