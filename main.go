@@ -9,6 +9,7 @@ import (
 	"strings"
 	"smartwatch-server/api/handlers"
 	"smartwatch-server/api/repository"
+	"smartwatch-server/api/router"
 	"smartwatch-server/config"
 
 	"github.com/gin-gonic/gin"
@@ -41,48 +42,9 @@ func main() {
 		dataHandler = handlers.NewDataHandler(repository.NewDataRepository(db))
 	}
 
-	// 创建 Gin 路由
+	// 创建 Gin 引擎并注册路由
 	r := gin.Default()
-
-	// CORS 中间件
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
-
-	// API 路由
-	api := r.Group("/api/v1")
-	{
-		// 批量数据上传
-		api.POST("/data/batch", func(c *gin.Context) {
-			dataHandler.HandleBatchUpload(c.Writer, c.Request)
-		})
-
-		// 统计信息
-		api.GET("/stats", func(c *gin.Context) {
-			dataHandler.GetStats(c.Writer, c.Request)
-		})
-	}
-
-	// 健康检查
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":  "ok",
-			"message": "Smartwatch data server is running",
-		})
-	})
-
-	// 前端静态资源
-	r.Static("/web", "./web")
-	r.GET("/", func(c *gin.Context) {
-		c.File("./web/index.html")
-	})
+	router.Setup(r, dataHandler)
 
 	// 启动服务器（0.0.0.0 确保手机等局域网设备可访问）
 	addr := "0.0.0.0:" + port

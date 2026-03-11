@@ -104,7 +104,7 @@ TLS_CERT=cert.pem TLS_KEY=key.pem go run main.go
 1. 安装 MySQL：`brew install mysql`，启动：`brew services start mysql`
 2. 创建数据库：`mysql -u root -p < scripts/init_db.sql`
 3. 配置连接：复制 `.env.example` 为 `.env`，填写 `DB_PASSWORD` 等
-4. 详见 **[docs/MySQL安装与配置.md](docs/MySQL安装与配置.md)** 和 **[docs/数据库设计说明.md](docs/数据库设计说明.md)**
+4. 详见 **[docs/mysql-installation-guide.md](docs/mysql-installation-guide.md)** 和 **[docs/database-design.md](docs/database-design.md)**
 
 未配置数据库时，服务以内存模式运行（数据不持久化）。
 
@@ -114,7 +114,7 @@ TLS_CERT=cert.pem TLS_KEY=key.pem go run main.go
 
 ### 9. 阿里云部署
 
-部署到阿里云 ECS 实现公网访问，详见 **[docs/阿里云部署指南.md](docs/阿里云部署指南.md)**。
+部署到阿里云 ECS 实现公网访问，详见 **[docs/aliyun-deployment-guide.md](docs/aliyun-deployment-guide.md)**。
 
 ## API 接口
 
