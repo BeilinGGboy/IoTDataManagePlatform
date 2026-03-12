@@ -167,8 +167,10 @@ chmod +x scripts/deploy.sh
 ./scripts/deploy.sh
 
 # 或手动打包（不含 .env，需在服务器上创建）
-GOOS=linux GOARCH=amd64 go build -o smartwatch-server .
-tar -czvf deploy.tar.gz smartwatch-server web scripts/init_db.sql
+VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "unknown")
+GOOS=linux GOARCH=amd64 go build -ldflags="-X smartwatch-server/version.Version=$VERSION" -o smartwatch-server .
+echo "$VERSION" > version.txt
+tar -czvf deploy.tar.gz smartwatch-server web scripts/init_db.sql version.txt
 
 # 上传（替换为你的公网 IP）
 scp deploy.tar.gz root@你的公网IP:/opt/
@@ -316,12 +318,41 @@ systemctl status smartwatch-server
 
 ## 九、访问验证
 
-- **IP 访问**：`http://你的公网IP:8080`
+- **IP 访问**：`http://47.100.174.12:8080`
 - **域名访问**：`http://1416153270107609.onaliyun.com:8080`（需先完成域名解析）
 
 ---
 
-## 十、常见问题
+## 十、版本管理
+
+部署包中包含版本信息，便于确认服务器代码与本地一致。
+
+### 查看版本
+
+| 方式 | 命令/地址 |
+|------|-----------|
+| 接口查询 | `curl http://你的IP:8080/version` 或访问 `http://你的IP:8080/health`（含 version 字段） |
+| 本地文件 | 解压后 `cat /opt/iot-platform/version.txt` |
+| 启动日志 | 服务启动时在终端打印 `版本: xxx` |
+
+### 版本号规则
+
+- 有 tag：显示 tag（如 `v1.0.0`）
+- 无 tag：显示短 commit hash（如 `abc1234`）
+- 有未提交修改：后缀 `-dirty`
+
+### 服务器拉取代码时记录版本
+
+```bash
+cd /opt/iot-platform
+git pull
+git rev-parse --short HEAD > .deployed_version   # 记录本次部署的 commit
+# 编译时同样使用 deploy.sh 或手动加 -ldflags 注入版本
+```
+
+---
+
+## 十二、常见问题
 
 | 问题 | 处理 |
 |------|------|
@@ -333,7 +364,7 @@ systemctl status smartwatch-server
 
 ---
 
-## 十一、去掉端口号（可选）
+## 十二、去掉端口号（可选）
 
 若希望用 `http://域名` 访问（不带 :8080），需配置 Nginx 反向代理：
 

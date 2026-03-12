@@ -39,3 +39,7 @@ server.log
 
 # TLS certificates (自签名证书勿提交)
 *.pem
+
+# 部署产物（deploy.sh 生成）
+version.txt
+deploy.tar.gz

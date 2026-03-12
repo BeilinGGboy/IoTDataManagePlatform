@@ -11,6 +11,7 @@ import (
 	"smartwatch-server/api/repository"
 	"smartwatch-server/api/router"
 	"smartwatch-server/config"
+	"smartwatch-server/version"
 
 	"github.com/gin-gonic/gin"
 )
@@ -69,10 +70,12 @@ func main() {
 	if certFile == "" {
 		fmt.Printf("提示: 设置 TLS_CERT+TLS_KEY 可启用 HTTPS\n")
 	}
+	fmt.Printf("版本: %s\n", version.Version)
 	fmt.Printf("接口:\n")
 	fmt.Printf("  POST /api/v1/data/batch - 批量上传数据\n")
 	fmt.Printf("  GET  /api/v1/stats      - 统计信息\n")
 	fmt.Printf("  GET  /health            - 健康检查\n")
+	fmt.Printf("  GET  /version           - 版本查询\n")
 	fmt.Printf("========================================\n\n")
 
 	if certFile != "" && keyFile != "" {

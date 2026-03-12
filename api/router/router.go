@@ -2,6 +2,7 @@ package router
 
 import (
 	"smartwatch-server/api/handlers"
+	"smartwatch-server/version"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +24,14 @@ func Setup(r *gin.Engine, dataHandler *handlers.DataHandler) {
 		c.JSON(200, gin.H{
 			"status":  "ok",
 			"message": "Smartwatch data server is running",
+			"version":  version.Version,
+		})
+	})
+
+	// 版本查询
+	r.GET("/version", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"version": version.Version,
 		})
 	})
 
