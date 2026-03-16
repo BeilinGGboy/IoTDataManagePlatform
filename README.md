@@ -16,13 +16,10 @@ smartwatch-server/
 │   └── models/            # 数据模型
 │       └── device_data.go
 │
-├── web/                    # 前端管理平台（可扩展）
-│   ├── index.html         # 入口页
-│   ├── css/style.css      # 样式
-│   └── js/
-│       ├── api.js         # API 调用
-│       ├── router.js      # 路由（Hash 路由，支持多页）
-│       └── app.js         # 页面渲染逻辑
+├── frontend/               # Vue 3 前端（推荐）
+│   ├── src/               # 源码
+│   └── package.json
+├── web/                    # 旧版静态前端（Vue 未构建时回退）
 │
 ├── config/                # 配置管理
 │   └── database.go       # 数据库连接
@@ -112,7 +109,21 @@ TLS_CERT=cert.pem TLS_KEY=key.pem go run main.go
 
 从互联网通过域名访问，详见 **[docs/公网域名访问指南.md](docs/公网域名访问指南.md)**。
 
-### 9. 阿里云部署
+### 9. Vue 前端开发（前后端分离）
+
+```bash
+# 终端 1：启动后端
+go run .
+
+# 终端 2：启动前端
+cd frontend && npm install && npm run dev
+```
+
+前端：http://localhost:5173 | 后端：http://localhost:8080
+
+详见 **[docs/vue-frontend-guide.md](docs/vue-frontend-guide.md)**
+
+### 10. 阿里云部署
 
 部署到阿里云 ECS 实现公网访问，详见 **[docs/aliyun-deployment-guide.md](docs/aliyun-deployment-guide.md)**。
 

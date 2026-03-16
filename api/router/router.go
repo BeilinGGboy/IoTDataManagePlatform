@@ -1,6 +1,8 @@
 package router
 
 import (
+	"os"
+	"path/filepath"
 	"smartwatch-server/api/handlers"
 	"smartwatch-server/version"
 
@@ -35,11 +37,20 @@ func Setup(r *gin.Engine, dataHandler *handlers.DataHandler) {
 		})
 	})
 
-	// 前端静态资源
-	r.Static("/web", "./web")
-	r.GET("/", func(c *gin.Context) {
-		c.File("./web/index.html")
-	})
+	// 前端静态资源：优先使用 Vue 构建产物，否则回退到旧版 web
+	distPath := "./frontend/dist"
+	if _, err := os.Stat(filepath.Join(distPath, "index.html")); err == nil {
+		r.Static("/assets", filepath.Join(distPath, "assets"))
+		r.StaticFile("/favicon.svg", filepath.Join(distPath, "favicon.svg"))
+		r.NoRoute(func(c *gin.Context) {
+			c.File(filepath.Join(distPath, "index.html"))
+		})
+	} else {
+		r.Static("/web", "./web")
+		r.GET("/", func(c *gin.Context) {
+			c.File("./web/index.html")
+		})
+	}
 }
 
 // corsMiddleware CORS 跨域中间件

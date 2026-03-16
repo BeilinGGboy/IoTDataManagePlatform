@@ -9,12 +9,23 @@ cd "$(dirname "$0")/.."
 VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "unknown")
 echo "=== 版本: $VERSION ==="
 
+echo "=== 构建前端 (Vue) ==="
+if [ -d frontend ]; then
+  (cd frontend && npm ci --silent 2>/dev/null || npm install --silent) && (cd frontend && npm run build) || echo "⚠️ 前端构建跳过（无 frontend 或构建失败）"
+else
+  echo "⚠️ 无 frontend 目录，跳过前端构建"
+fi
+
 echo "=== 编译 Linux 版本 ==="
 GOOS=linux GOARCH=amd64 go build -ldflags="-X smartwatch-server/version.Version=$VERSION" -o smartwatch-server .
 
 echo "=== 打包 ==="
 echo "$VERSION" > version.txt
-tar -czvf deploy.tar.gz smartwatch-server web scripts/init_db.sql version.txt
+if [ -d frontend/dist ]; then
+  tar -czvf deploy.tar.gz smartwatch-server frontend/dist scripts/init_db.sql version.txt
+else
+  tar -czvf deploy.tar.gz smartwatch-server web scripts/init_db.sql version.txt
+fi
 
 echo ""
 echo "=== 打包完成: deploy.tar.gz (版本 $VERSION) ==="
