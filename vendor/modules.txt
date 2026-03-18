@@ -64,6 +64,9 @@ github.com/goccy/go-json/internal/encoder/vm_color_indent
 github.com/goccy/go-json/internal/encoder/vm_indent
 github.com/goccy/go-json/internal/errors
 github.com/goccy/go-json/internal/runtime
+# github.com/golang-jwt/jwt/v5 v5.3.1
+## explicit; go 1.21
+github.com/golang-jwt/jwt/v5
 # github.com/jinzhu/inflection v1.0.0
 ## explicit
 github.com/jinzhu/inflection
@@ -122,6 +125,8 @@ github.com/ugorji/go/codec
 golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.14.0
 ## explicit; go 1.17
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
 golang.org/x/crypto/sha3
 # golang.org/x/net v0.10.0
 ## explicit; go 1.17

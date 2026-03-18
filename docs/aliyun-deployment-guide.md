@@ -4,6 +4,29 @@
 
 ---
 
+## 快捷部署：AL start
+
+项目根目录提供 `AL` 脚本，一键编译、上传、重启：
+
+```bash
+# 1. 首次配置
+cp .al-config.example .al-config
+nano .al-config   # 填写 SERVER=你的服务器IP
+
+# 2. 执行部署
+./AL start
+```
+
+配置别名后可在任意目录执行 `AL start`：
+```bash
+# 在项目目录下执行
+cd /path/to/smartwatch-server
+echo "alias AL='$(pwd)/AL'" >> ~/.zshrc
+source ~/.zshrc
+```
+
+---
+
 ## 部署过程总结（2025-02-27 实测）
 
 本次在阿里云轻量应用服务器（宝塔 Linux 面板镜像）上完成部署，主要步骤与注意事项如下：

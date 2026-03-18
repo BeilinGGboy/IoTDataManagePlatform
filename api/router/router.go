@@ -4,19 +4,40 @@ import (
 	"os"
 	"path/filepath"
 	"smartwatch-server/api/handlers"
+	"smartwatch-server/api/middleware"
+	"smartwatch-server/config"
 	"smartwatch-server/version"
 
 	"github.com/gin-gonic/gin"
 )
 
 // Setup 注册所有路由和中间件
-func Setup(r *gin.Engine, dataHandler *handlers.DataHandler) {
+func Setup(r *gin.Engine, dataHandler *handlers.DataHandler, authHandler *handlers.AuthHandler) {
 	// CORS 中间件
 	r.Use(corsMiddleware())
 
-	// API 路由
 	api := r.Group("/api/v1")
-	{
+
+	// 认证路由（公开）
+	if authHandler != nil {
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+		}
+
+		// 需鉴权的路由
+		secret := config.JWTSecret()
+		protected := api.Group("")
+		protected.Use(middleware.AuthRequired(secret))
+		{
+			protected.GET("/auth/me", authHandler.GetMe)
+			protected.POST("/data/batch", gin.WrapF(dataHandler.HandleBatchUpload))
+		}
+		// GET /stats 公开（仪表盘概览，兼容旧版 web 前端）
+		api.GET("/stats", gin.WrapF(dataHandler.GetStats))
+	} else {
+		// 无数据库时：数据接口不鉴权（兼容旧版）
 		api.POST("/data/batch", gin.WrapF(dataHandler.HandleBatchUpload))
 		api.GET("/stats", gin.WrapF(dataHandler.GetStats))
 	}

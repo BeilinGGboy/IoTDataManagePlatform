@@ -32,6 +32,7 @@ func main() {
 
 	// 初始化数据库（可选，未配置时仅内存模式）
 	var dataHandler *handlers.DataHandler
+	var authHandler *handlers.AuthHandler
 	dbCfg := config.LoadDBConfig()
 	if db, err := config.InitDB(); err != nil {
 		log.Printf("❌ 数据库连接失败，使用内存模式（数据不持久化）")
@@ -41,11 +42,12 @@ func main() {
 	} else {
 		log.Println("✅ 数据库连接成功")
 		dataHandler = handlers.NewDataHandler(repository.NewDataRepository(db))
+		authHandler = handlers.NewAuthHandler(repository.NewAuthRepository(db))
 	}
 
 	// 创建 Gin 引擎并注册路由
 	r := gin.Default()
-	router.Setup(r, dataHandler)
+	router.Setup(r, dataHandler, authHandler)
 
 	// 启动服务器（0.0.0.0 确保手机等局域网设备可访问）
 	addr := "0.0.0.0:" + port
@@ -72,10 +74,13 @@ func main() {
 	}
 	fmt.Printf("版本: %s\n", version.Version)
 	fmt.Printf("接口:\n")
-	fmt.Printf("  POST /api/v1/data/batch - 批量上传数据\n")
-	fmt.Printf("  GET  /api/v1/stats      - 统计信息\n")
-	fmt.Printf("  GET  /health            - 健康检查\n")
-	fmt.Printf("  GET  /version           - 版本查询\n")
+	fmt.Printf("  POST /api/v1/auth/register - 注册\n")
+	fmt.Printf("  POST /api/v1/auth/login    - 登录\n")
+	fmt.Printf("  GET  /api/v1/auth/me       - 当前用户（需鉴权）\n")
+	fmt.Printf("  POST /api/v1/data/batch    - 批量上传数据\n")
+	fmt.Printf("  GET  /api/v1/stats         - 统计信息\n")
+	fmt.Printf("  GET  /health               - 健康检查\n")
+	fmt.Printf("  GET  /version              - 版本查询\n")
 	fmt.Printf("========================================\n\n")
 
 	if certFile != "" && keyFile != "" {

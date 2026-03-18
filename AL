@@ -1,0 +1,143 @@
+#!/bin/bash
+# AL - 阿里云部署快捷脚本
+# 用法: ./AL start  或  AL start（需配置别名）
+# 配置: 编辑 .al-config 或设置环境变量 AL_SERVER
+
+set -e
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
+
+# 加载配置
+CONFIG_FILE="$ROOT/.al-config"
+if [ -f "$CONFIG_FILE" ]; then
+  source "$CONFIG_FILE"
+fi
+# 若 SERVER 为空，尝试从 example 加载（用户可能只编辑了 example 未复制）
+if [ -z "${SERVER:-}" ] && [ -f "$ROOT/.al-config.example" ]; then
+  source "$ROOT/.al-config.example"
+fi
+SERVER="${AL_SERVER:-${SERVER:-}}"
+USER="${AL_USER:-root}"
+DEPLOY_PATH="${AL_DEPLOY_PATH:-/opt/iot-platform}"
+
+cmd="${1:-}"
+
+show_help() {
+  echo "AL - 阿里云部署快捷脚本"
+  echo ""
+  echo "用法: AL start"
+  echo ""
+  echo "命令:"
+  echo "  start    编译、打包、上传到服务器并重启服务"
+  echo "  build    仅本地编译打包（不上传）"
+  echo "  upload   仅上传（需先 build）"
+  echo "  status   查看服务器上服务状态和最近日志"
+  echo "  ssh      连接服务器"
+  echo ""
+  echo "配置: 编辑 $ROOT/.al-config"
+  echo "  SERVER=47.100.174.12    # 服务器 IP"
+  echo "  USER=root               # SSH 用户（可选）"
+  echo "  DEPLOY_PATH=/opt/iot-platform  # 部署路径（可选）"
+  echo ""
+  echo "或设置环境变量: AL_SERVER, AL_USER"
+}
+
+do_build() {
+  echo "=== AL: 本地编译打包 ==="
+  VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "unknown")
+  echo "版本: $VERSION"
+
+  echo ">>> 构建前端"
+  if [ -d frontend ]; then
+    (cd frontend && (npm ci --silent 2>/dev/null || npm install --silent) && npm run build) || echo "⚠️ 前端构建跳过"
+  fi
+
+  echo ">>> 编译 Go"
+  GOOS=linux GOARCH=amd64 go build -ldflags="-X smartwatch-server/version.Version=$VERSION" -o smartwatch-server .
+
+  echo ">>> 打包"
+  echo "$VERSION" > version.txt
+  if [ -d frontend/dist ]; then
+    tar -czvf deploy.tar.gz smartwatch-server frontend/dist scripts/init_db.sql version.txt
+  else
+    tar -czvf deploy.tar.gz smartwatch-server web scripts/init_db.sql version.txt
+  fi
+  echo ">>> 打包完成: deploy.tar.gz ($VERSION)"
+}
+
+do_upload() {
+  if [ -z "$SERVER" ]; then
+    echo "❌ 未配置服务器"
+    echo "   请执行: cp .al-config.example .al-config && nano .al-config"
+    echo "   在 .al-config 中设置: SERVER=47.100.174.12"
+    exit 1
+  fi
+  echo ">>> 上传到 $USER@$SERVER:$DEPLOY_PATH"
+  scp deploy.tar.gz "$USER@$SERVER:/opt/"
+}
+
+do_deploy() {
+  if [ -z "$SERVER" ]; then
+    echo "❌ 未配置服务器（见上方说明）"
+    exit 1
+  fi
+  echo ">>> 服务器解压并重启"
+  ssh "$USER@$SERVER" "mkdir -p $DEPLOY_PATH && cd $DEPLOY_PATH && tar -xzf /opt/deploy.tar.gz && chmod +x smartwatch-server"
+  if ssh "$USER@$SERVER" "systemctl is-active smartwatch-server" 2>/dev/null | grep -q active; then
+    ssh "$USER@$SERVER" "systemctl restart smartwatch-server"
+    echo ">>> systemd 已重启"
+  else
+    echo ">>> 未检测到 systemd 服务，尝试前台启动（需在服务器手动执行）"
+    echo "    ssh $USER@$SERVER"
+    echo "    cd $DEPLOY_PATH && ./smartwatch-server"
+  fi
+  echo ""
+  echo ">>> 部署完成。若 502，请在服务器执行以下诊断："
+  echo "    ssh $USER@$SERVER"
+  echo "    systemctl status smartwatch-server   # 检查服务状态"
+  echo "    journalctl -u smartwatch-server -n 50  # 查看日志"
+  echo "    curl -s http://localhost:8080/health   # 本机测试"
+}
+
+case "$cmd" in
+  start)
+    do_build
+    do_upload
+    do_deploy
+    ;;
+  build)
+    do_build
+    ;;
+  upload)
+    do_upload
+    ;;
+  status)
+    if [ -z "$SERVER" ]; then
+      echo "❌ 未配置 SERVER"
+      exit 1
+    fi
+    echo ">>> 服务状态"
+    ssh "$USER@$SERVER" "systemctl status smartwatch-server 2>/dev/null || echo 'systemd 服务未配置'"
+    echo ""
+    echo ">>> 最近 20 行日志"
+    ssh "$USER@$SERVER" "journalctl -u smartwatch-server -n 20 --no-pager 2>/dev/null || echo '(无 systemd 日志)'"
+    echo ""
+    echo ">>> 本机 8080 端口测试"
+    ssh "$USER@$SERVER" "curl -s -w ' HTTP %{http_code}\n' http://localhost:8080/health 2>/dev/null || echo '连接失败'"
+    ;;
+  ssh)
+    if [ -z "$SERVER" ]; then
+      echo "❌ 未配置 SERVER"
+      exit 1
+    fi
+    ssh "$USER@$SERVER"
+    ;;
+  help|--help|-h|"")
+    show_help
+    ;;
+  *)
+    echo "未知命令: $cmd"
+    show_help
+    exit 1
+    ;;
+esac

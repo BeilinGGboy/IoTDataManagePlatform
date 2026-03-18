@@ -25,7 +25,7 @@ const router = createRouter({
   routes,
 })
 
-// 路由守卫：未登录时跳转登录页（后端未实现鉴权时，前端先做占位）
+// 路由守卫：未登录时跳转登录页
 router.beforeEach((to, from, next) => {
   document.title = to.meta.title ? `${to.meta.title} - IoT 数据平台` : 'IoT 数据平台'
   const userStore = useUserStore()

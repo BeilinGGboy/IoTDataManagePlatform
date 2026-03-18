@@ -66,42 +66,71 @@
             </el-form>
           </el-tab-pane>
 
-          <!-- 短信验证码登录 -->
-          <el-tab-pane label="短信登录" name="sms">
+          <!-- 注册 -->
+          <el-tab-pane label="注册账号" name="register">
             <el-form
-              ref="smsFormRef"
-              :model="smsForm"
-              :rules="smsRules"
-              @submit.prevent="handleSmsLogin"
+              ref="registerFormRef"
+              :model="registerForm"
+              :rules="registerRules"
+              @submit.prevent="handleRegister"
             >
+              <el-form-item prop="username">
+                <el-input
+                  v-model="registerForm.username"
+                  placeholder="用户名（3-32位字母、数字、下划线）"
+                  size="large"
+                  :prefix-icon="User"
+                  clearable
+                />
+              </el-form-item>
+              <el-form-item prop="password">
+                <el-input
+                  v-model="registerForm.password"
+                  type="password"
+                  placeholder="密码（6-32位）"
+                  size="large"
+                  :prefix-icon="Lock"
+                  show-password
+                  clearable
+                />
+                <div v-if="registerForm.password" class="password-strength">
+                  <el-progress
+                    :percentage="registerStrength.level * 20"
+                    :stroke-width="6"
+                    :color="registerStrengthColor"
+                  />
+                  <span class="strength-text">密码强度：{{ registerStrength.text }}</span>
+                </div>
+              </el-form-item>
+              <el-form-item prop="confirmPassword">
+                <el-input
+                  v-model="registerForm.confirmPassword"
+                  type="password"
+                  placeholder="确认密码"
+                  size="large"
+                  :prefix-icon="Lock"
+                  show-password
+                  clearable
+                />
+              </el-form-item>
               <el-form-item prop="phone">
                 <el-input
-                  v-model="smsForm.phone"
-                  placeholder="请输入手机号"
+                  v-model="registerForm.phone"
+                  placeholder="手机号（选填）"
                   size="large"
                   :prefix-icon="Iphone"
                   maxlength="11"
                   clearable
                 />
               </el-form-item>
-              <el-form-item prop="code">
-                <div class="sms-code-input">
-                  <el-input
-                    v-model="smsForm.code"
-                    placeholder="请输入验证码"
-                    size="large"
-                    :prefix-icon="Message"
-                    maxlength="6"
-                    clearable
-                  />
-                  <el-button
-                    type="primary"
-                    :disabled="countdown > 0 || !smsForm.phone"
-                    @click="sendSmsCode"
-                  >
-                    {{ countdown > 0 ? `${countdown}s 后重发` : '获取验证码' }}
-                  </el-button>
-                </div>
+              <el-form-item prop="email">
+                <el-input
+                  v-model="registerForm.email"
+                  placeholder="邮箱（选填）"
+                  size="large"
+                  :prefix-icon="Message"
+                  clearable
+                />
               </el-form-item>
               <el-form-item>
                 <el-button
@@ -109,17 +138,36 @@
                   size="large"
                   :loading="loading"
                   class="login-btn"
-                  @click="handleSmsLogin"
+                  @click="handleRegister"
                 >
-                  登 录
+                  注 册
                 </el-button>
               </el-form-item>
             </el-form>
           </el-tab-pane>
 
-          <!-- 忘记密码 -->
+          <!-- 短信验证码登录（暂未开放） -->
+          <el-tab-pane label="短信登录" name="sms">
+            <el-alert
+              title="短信登录暂未开放"
+              type="info"
+              description="请使用密码登录或注册账号后登录"
+              show-icon
+              :closable="false"
+            />
+          </el-tab-pane>
+
+          <!-- 忘记密码（暂未开放） -->
           <el-tab-pane label="忘记密码" name="forget">
+            <el-alert
+              title="忘记密码功能暂未开放"
+              type="info"
+              description="请联系管理员重置密码"
+              show-icon
+              :closable="false"
+            />
             <el-form
+              v-show="false"
               ref="forgetFormRef"
               :model="forgetForm"
               :rules="forgetRules"
@@ -200,9 +248,21 @@
         </el-tabs>
 
         <div class="login-footer">
-          <el-link type="info" :underline="false" @click="goBackToLogin">
-            返回登录
-          </el-link>
+          <template v-if="activeTab === 'register'">
+            <el-link type="primary" :underline="false" @click="activeTab = 'password'">
+              已有账号？去登录
+            </el-link>
+          </template>
+          <template v-else-if="activeTab !== 'password'">
+            <el-link type="primary" :underline="false" @click="goBackToLogin">
+              返回登录
+            </el-link>
+          </template>
+          <template v-else>
+            <el-link type="primary" :underline="false" @click="activeTab = 'register'">
+              没有账号？去注册
+            </el-link>
+          </template>
         </div>
       </div>
     </div>
@@ -215,7 +275,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Iphone, Message } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { checkPasswordStrength, isValidPhone } from '@/utils/validate'
+import { checkPasswordStrength, isValidPhone, isValidEmail } from '@/utils/validate'
+import { login as apiLogin, register as apiRegister } from '@/api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -238,22 +299,45 @@ const passwordRules = {
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
-// 短信登录
-const smsFormRef = ref()
-const smsForm = reactive({
+// 注册
+const registerFormRef = ref()
+const registerForm = reactive({
+  username: '',
+  password: '',
+  confirmPassword: '',
   phone: '',
-  code: '',
+  email: '',
 })
-const smsRules = {
-  phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { validator: (_, v) => isValidPhone(v) || !v, message: '手机号格式不正确', trigger: 'blur' },
+const registerRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9_]{3,32}$/, message: '3-32位字母、数字或下划线', trigger: 'blur' },
   ],
-  code: [
-    { required: true, message: '请输入验证码', trigger: 'blur' },
-    { len: 6, message: '验证码为6位数字', trigger: 'blur' },
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 32, message: '密码长度6-32位', trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认密码', trigger: 'blur' },
+    { validator: (_, v) => v === registerForm.password, message: '两次密码不一致', trigger: 'blur' },
+  ],
+  phone: [
+    { validator: (_, v) => !v || isValidPhone(v), message: '手机号格式不正确', trigger: 'blur' },
+  ],
+  email: [
+    { validator: (_, v) => !v || isValidEmail(v), message: '邮箱格式不正确', trigger: 'blur' },
   ],
 }
+const registerStrength = computed(() => checkPasswordStrength(registerForm.password))
+const registerStrengthColor = computed(() => {
+  const colors = ['#f56c6c', '#e6a23c', '#409eff', '#67c23a', '#67c23a']
+  return colors[registerStrength.value.level] || '#409eff'
+})
+
+// 短信登录（暂未开放）
+const smsFormRef = ref()
+const smsForm = reactive({ phone: '', code: '' })
+const smsRules = {}
 
 // 忘记密码
 const forgetFormRef = ref()
@@ -337,26 +421,48 @@ async function handlePasswordLogin() {
 
   loading.value = true
   try {
-    // 后端未实现登录接口，前端模拟：任意账号密码均可进入
-    userStore.setToken('demo-token-' + Date.now())
-    userStore.setUserInfo({ username: passwordForm.username })
+    const res = await apiLogin({
+      username: passwordForm.username,
+      password: passwordForm.password,
+    })
+    if (res.code !== 0 || !res.data) {
+      ElMessage.error(res.message || '登录失败')
+      return
+    }
+    userStore.setToken(res.data.token)
+    userStore.setUserInfo(res.data.user)
     ElMessage.success('登录成功')
     router.push(route.query.redirect || '/dashboard')
+  } catch (e) {
+    // 错误已在 request 拦截器处理
   } finally {
     loading.value = false
   }
 }
 
-async function handleSmsLogin() {
-  await smsFormRef.value?.validate().catch(() => {})
-  if (!smsForm.phone || !smsForm.code) return
+async function handleRegister() {
+  await registerFormRef.value?.validate().catch(() => {})
+  if (!registerForm.username || !registerForm.password || registerForm.password !== registerForm.confirmPassword) return
 
   loading.value = true
   try {
-    userStore.setToken('demo-token-sms-' + Date.now())
-    userStore.setUserInfo({ phone: smsForm.phone })
-    ElMessage.success('登录成功')
+    const res = await apiRegister({
+      username: registerForm.username,
+      password: registerForm.password,
+      confirm_password: registerForm.confirmPassword,
+      phone: registerForm.phone || undefined,
+      email: registerForm.email || undefined,
+    })
+    if (res.code !== 0 || !res.data) {
+      ElMessage.error(res.message || '注册失败')
+      return
+    }
+    userStore.setToken(res.data.token)
+    userStore.setUserInfo(res.data.user)
+    ElMessage.success('注册成功，已自动登录')
     router.push(route.query.redirect || '/dashboard')
+  } catch (e) {
+    // 错误已在 request 拦截器处理
   } finally {
     loading.value = false
   }

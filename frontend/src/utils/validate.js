@@ -34,5 +34,6 @@ export function isValidPhone(phone) {
  * 邮箱校验
  */
 export function isValidEmail(email) {
+  if (!email) return false
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }

@@ -2,6 +2,21 @@ package models
 
 import "time"
 
+// AdminUser 管理员用户表
+type AdminUser struct {
+	ID           uint      `gorm:"primaryKey"`
+	Username     string    `gorm:"uniqueIndex:uk_username;size:64;not null"`
+	PasswordHash string    `gorm:"column:password_hash;size:255;not null"`
+	Phone        *string   `gorm:"size:20;uniqueIndex:uk_phone"`
+	Email        *string   `gorm:"size:128;uniqueIndex:uk_email"`
+	Role         string    `gorm:"size:32;not null;default:admin"`
+	Status       int       `gorm:"not null;default:1"`
+	CreatedAt    time.Time `gorm:"autoCreateTime"`
+	UpdatedAt    time.Time `gorm:"autoUpdateTime"`
+}
+
+func (AdminUser) TableName() string { return "admin_users" }
+
 // Device 设备表
 type Device struct {
 	ID        uint      `gorm:"primaryKey"`

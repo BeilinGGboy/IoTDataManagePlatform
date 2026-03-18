@@ -4,6 +4,8 @@ go 1.21
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/golang-jwt/jwt/v5 v5.3.1
+	golang.org/x/crypto v0.14.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.10
 )
@@ -30,7 +32,6 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect

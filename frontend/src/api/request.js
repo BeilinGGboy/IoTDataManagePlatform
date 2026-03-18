@@ -20,7 +20,20 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (res) => res.data,
   (err) => {
-    ElMessage.error(err.response?.data?.message || err.message || '请求失败')
+    const status = err.response?.status
+    const message = err.response?.data?.message || err.message || '请求失败'
+
+    if (status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      ElMessage.error(message || '登录已过期，请重新登录')
+      // 避免在登录页重复跳转
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search)
+      }
+    } else {
+      ElMessage.error(message)
+    }
     return Promise.reject(err)
   }
 )
