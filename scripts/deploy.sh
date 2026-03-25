@@ -30,7 +30,7 @@ fi
 echo ""
 echo "=== 打包完成: deploy.tar.gz (版本 $VERSION) ==="
 echo ""
-echo "上传命令（替换 YOUR_SERVER_IP 为你的公网 IP）："
+echo "上传命令（替换为你的公网 IP）："
 echo "  scp deploy.tar.gz root@47.100.174.12:/opt/"
 echo ""
 echo "服务器上解压并运行："

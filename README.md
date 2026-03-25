@@ -123,9 +123,83 @@ cd frontend && npm install && npm run dev
 
 详见 **[docs/vue-frontend-guide.md](docs/vue-frontend-guide.md)**
 
-### 10. 阿里云部署
+### 10. 一键部署代码到服务器（推荐）
 
-部署到阿里云 ECS 实现公网访问，详见 **[docs/aliyun-deployment-guide.md](docs/aliyun-deployment-guide.md)**。
+在项目根目录使用 **`AL`** 脚本：本地编译 Linux 程序、构建前端（若已安装 Node）、打包 `deploy.tar.gz`，通过 **SCP** 上传到服务器，并在服务器上解压到 ` /opt/iot-platform` 后尝试 **重启 systemd 服务** `smartwatch-server`。
+
+#### 前置条件（首次部署）
+
+- 本机已安装 **Go**，能在本目录执行 `go build`。
+- 本机可 **SSH** 登录服务器（密码或密钥），并且能把文件放到服务器 `/opt/`。
+- 服务器上已按 **[docs/aliyun-deployment-guide.md](docs/aliyun-deployment-guide.md)** 完成：
+  - 目录：`/opt/iot-platform`（或与你 `.al-config` 中 `DEPLOY_PATH` 一致）
+  - 数据库与 `.env`（含 `DB_PASSWORD` 等）
+  - systemd 单元：`smartwatch-server.service`，且 `WorkingDirectory` 指向部署目录
+
+#### 配置服务器地址（首次）
+
+```bash
+cp .al-config.example .al-config
+# 编辑 .al-config，填写 SERVER=你的公网 IP
+# 可选：USER=root、DEPLOY_PATH=/opt/iot-platform
+```
+
+`.al-config` 已加入 `.gitignore`，请勿提交到仓库。
+
+#### 一键部署命令
+
+```bash
+# 在项目根目录执行
+chmod +x ./AL
+./AL start
+```
+
+脚本会依次：构建前端（若存在 `frontend/` 且 `npm` 可用）→ 编译 Linux 可执行文件 → 打包 → `scp deploy.tar.gz` → SSH 解压并 `systemctl restart smartwatch-server`（若服务存在）。
+
+#### 可选：任意目录执行 `AL start`
+
+```bash
+cd /path/to/smartwatch-server
+echo "alias AL='$(pwd)/AL'" >> ~/.zshrc
+source ~/.zshrc
+# 之后可在任意目录执行：
+AL start
+```
+
+#### 其他子命令
+
+| 命令 | 说明 |
+|------|------|
+| `./AL start` | 编译、打包、上传、远程解压并重启服务 |
+| `./AL build` | 仅本地编译打包，生成 `deploy.tar.gz` |
+| `./AL upload` | 仅上传（需已有 `deploy.tar.gz`） |
+| `./AL status` | 远程查看 `smartwatch-server` 状态与最近日志 |
+| `./AL ssh` | SSH 登录配置的服务器 |
+| `./AL help` | 帮助 |
+
+#### 与脚本 `deploy.sh` 的关系
+
+- **`./AL start`**：面向「推到已配置好的生产机」的完整流程（含上传与远程重启）。
+- **`./scripts/deploy.sh`**：主要生成本地 `deploy.tar.gz` 并打印手动 `scp` 等提示，适合不配置 `.al-config` 时使用。
+
+#### Vue 前端随部署一并上线
+
+若希望线上使用 Vue 而非旧版 `web/`，部署前在本机执行：
+
+```bash
+cd frontend && npm install && npm run build && cd ..
+./AL start
+```
+
+若未构建 `frontend/dist`，打包会回退为旧版 `web/` 静态资源。
+
+#### 安全组与防火墙
+
+外网访问需在云控制台 **安全组 / 防火墙** 放行 **8080**（TCP），详见部署指南。
+
+### 11. 阿里云部署（环境与手册）
+
+服务器环境搭建、数据库、systemd、Nginx 等完整说明见 **[docs/aliyun-deployment-guide.md](docs/aliyun-deployment-guide.md)**。
 
 ## API 接口
 
