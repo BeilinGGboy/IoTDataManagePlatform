@@ -27,9 +27,15 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       output: {
-        manualChunks: {
-          'element-plus': ['element-plus'],
-          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+        // rolldown/vite 版本中 manualChunks 需要是函数
+        // 返回 chunk 名称用于分包；返回 undefined 则使用默认分包策略
+        manualChunks(id) {
+          if (!id) return undefined
+          if (id.includes('node_modules')) {
+            if (id.includes('element-plus')) return 'element-plus'
+            if (id.includes('vue-router') || id.includes('vue') || id.includes('pinia')) return 'vue-vendor'
+          }
+          return undefined
         },
       },
     },
